@@ -1,0 +1,47 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 2110,
+    "ws_port": 2111,
+    "tls": false,
+    "max_connections": 1000,
+    "read_timeout": 30,
+    "write_timeout": 30,
+    "shutdown_timeout": 10
+  },
+  "storage": {
+    "type": "bolt",
+    "data_dir": "./data",
+    "retention_days": 30
+  },
+  "alert": {
+    "enabled": true,
+    "check_interval_seconds": 60,
+    "metrics_expiration_seconds": 300,
+    "alert_on_expired_metrics": true,
+    "email": {
+      "enabled": true,
+      "host": "smtp.example.com",
+      "port": 587,
+      "username": "user@example.com",
+      "password": "your_password",
+      "from": "alert@example.com",
+      "to": ["admin@example.com"]
+    },
+    "webhook": {
+      "enabled": false,
+      "url": "https://example.com/webhook",
+      "headers": {"Content-Type": "application/json"},
+      "timeout_seconds": 10
+    },
+    "sms": {
+      "enabled": false,
+      "url": "https://api.example.com/sms",
+      "api_key": "your_api_key",
+      "headers": {"Content-Type": "application/json"},
+      "params": {},
+      "phone_numbers": ["+1234567890"],
+      "timeout_seconds": 10
+    }
+  }
+}
