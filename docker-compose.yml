@@ -1,0 +1,83 @@
+# 用于部署服务器探针系统
+
+version: '3.8'
+
+services:
+  # 服务端
+  server:
+    build:
+      context: .
+      target: server
+      args:
+        VERSION: ${VERSION:-latest}
+        BUILD_TIME: ${BUILD_TIME:-$(date -u +"%Y-%m-%dT%H:%M:%SZ")}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    container_name: server-probe-server
+    restart: unless-stopped
+    ports:
+      - "2110:2110"
+      - "2111:2111"
+    volumes:
+      - ./configs:/app/configs:ro
+      - server_data:/app/data
+      - server_logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+      - CONFIG_FILE=/app/configs/server.json
+    networks:
+      - probe_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:2110/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 客户端代理（示例）
+  agent:
+    build:
+      context: .
+      target: agent
+      args:
+        VERSION: ${VERSION:-v1.0.0}
+        BUILD_TIME: ${BUILD_TIME}
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    container_name: server-probe-agent
+    restart: unless-stopped
+    volumes:
+      - agent_logs:/app/logs
+      # 挂载主机系统信息（只读）
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc:/host/etc:ro
+    environment:
+      - TZ=Asia/Shanghai
+      - SERVER_URL=ws://server:8080/ws
+      - INTERVAL=30
+      - DEBUG=false
+      - HOSTNAME=${HOSTNAME:-docker-agent}
+    networks:
+      - probe-network
+    depends_on:
+      server:
+        condition: service_healthy
+    # 特权模式以访问主机系统信息
+    privileged: true
+    pid: host
+
+
+
+volumes:
+  server_data:
+    driver: local
+  server_logs:
+    driver: local
+  agent_logs:
+    driver: local
+
+networks:
+  probe-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
